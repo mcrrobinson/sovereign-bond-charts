@@ -1,0 +1,43 @@
+# Sovereign bond charts
+
+Two interactive bubble charts comparing 27 countries' government bond yields, debt-to-GDP and currency strength.
+
+**Live site:** https://mcrrobinson.github.io/sovereign-bond-charts/
+
+![Preview of both charts](docs/preview.png)
+
+1. **Where countries stand**: debt-to-GDP (x) against 10-year bond yield (y, log scale). Bubble size is currency strength.
+2. **Rate of change**: the average yearly change in debt-to-GDP (x) and 10-year yield (y) over 1, 5 or 10 years (use the buttons to switch). Bubble size is how fast the currency moved: solid means it strengthened, a ring means it weakened.
+
+Blue bubbles are advanced economies and orange bubbles are emerging markets. Hover over or tab to a bubble for exact figures; the full data is in the table at the bottom of the page.
+
+## Data
+
+All three sources are free public APIs with no key.
+
+| Variable | Source | Frequency |
+|---|---|---|
+| 10-year government bond yield | [OECD](https://data-explorer.oecd.org/) Main Economic Indicators, long-term interest rates (`DF_FINMARK`, `IRLT`) | Monthly average |
+| Currency strength | [BIS](https://data.bis.org/topics/EER) nominal effective exchange rate, broad basket of 64 economies (`WS_EER`, `M.N.B`), 2020 = 100 | Monthly |
+| Government debt, % of GDP | [IMF](https://www.imf.org/external/datamapper/GGXWDG_NGDP@WEO) World Economic Outlook, general government gross debt (`GGXWDG_NGDP`) | Annual |
+
+**Currency strength** is the BIS nominal effective exchange rate: a currency's value against a trade-weighted basket of its trading partners' currencies. It is a better measure than a rate against the US dollar alone because it reflects the currency's value against all the others it trades with.
+
+**Rates of change** are annualised so the three periods use the same units: yields and debt are percentage points per year, and currency is compound % per year. Yields and currency compare the latest month with the same month 1, 5 or 10 years earlier. Debt compares the latest IMF year with the year 1, 5 or 10 years before.
+
+### Limitations
+
+- Yields are monthly averages published with a lag of about a month, so they can differ from today's market quote.
+- The latest debt year is an IMF estimate, not a final figure.
+- Brazil, Turkey, Singapore and Indonesia are left out. OECD's Brazil series is not the nominal 10-year yield, and there is no current free series for the other three.
+
+## Updating the data
+
+A [GitHub Action](.github/workflows/update-data.yml) runs `scripts/fetch_data.py` every Monday and commits `data/data.json` when the figures change. To run it by hand:
+
+```sh
+python3 scripts/fetch_data.py   # standard library only, Python 3.9+
+python3 -m http.server          # then open http://localhost:8000
+```
+
+To add a country, add a row to `COUNTRIES` in `scripts/fetch_data.py`. The script stops with an error if any source has no data for it.

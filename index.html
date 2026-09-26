@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sovereign Bond Charts</title>
+<meta name="description" content="Government bond yields, debt-to-GDP and currency strength for 27 countries, with their rates of change over 1, 5 and 10 years.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <h1>Sovereign bonds: debt, yield and currency</h1>
+    <p class="lede">Each bubble is a country. The first chart shows where each one stands today. The second shows which direction it's moving and how fast.</p>
+    <div class="legend" aria-label="Colour key">
+      <span><i class="swatch" style="background:var(--s-adv)"></i>Advanced economies</span>
+      <span><i class="swatch" style="background:var(--s-em)"></i>Emerging markets</span>
+    </div>
+  </header>
+
+  <section class="card" aria-labelledby="levels-title">
+    <div class="card-head">
+      <div>
+        <h2 id="levels-title">Where countries stand</h2>
+        <p class="sub" id="levels-sub">Latest data</p>
+      </div>
+      <div class="size-key" id="levels-key" aria-hidden="true"></div>
+    </div>
+    <div class="chart" id="levels"></div>
+    <p class="how">Bubble size is currency strength: the BIS nominal effective exchange rate, which measures a currency against a trade-weighted basket of 64 other currencies. 100 is its 2020 average, so a bigger bubble means a currency that has gained against its trading partners since 2020.</p>
+  </section>
+
+  <section class="card" aria-labelledby="change-title">
+    <div class="card-head">
+      <div>
+        <h2 id="change-title">Rate of change</h2>
+        <p class="sub" id="change-sub">Average change per year</p>
+      </div>
+      <div class="seg" role="group" aria-label="Period">
+        <button type="button" id="p1" data-years="1">1 year</button>
+        <button type="button" id="p5" data-years="5" aria-pressed="true">5 years</button>
+        <button type="button" id="p10" data-years="10">10 years</button>
+      </div>
+    </div>
+    <div class="size-key" id="change-key" aria-hidden="true"></div>
+    <div class="chart" id="change"></div>
+    <p class="how">Each axis is the average change per year over the chosen period, so the three periods share units. Bubble size is how fast the currency moved against its trade-weighted basket (compound % per year). A solid bubble means it strengthened; a hollow ring means it weakened.</p>
+  </section>
+
+  <details class="card table-card">
+    <summary>Show the data table</summary>
+    <div class="tbl"><table id="tbl"></table></div>
+  </details>
+
+  <footer class="src" id="src"></footer>
+</main>
+<div class="tip" id="tip" hidden></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
