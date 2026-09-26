@@ -212,7 +212,7 @@
       tip: `<b>${r.name}</b>` +
         tipRow("10-year yield", `${r.yield.toFixed(2)}%`) +
         tipRow(`Debt / GDP (${r.debtYear})`, `${r.debt.toFixed(1)}%`) +
-        tipRow("Currency index", `${r.neer.toFixed(1)}`) +
+        tipRow(r.euro ? "Currency index (euro)" : "Currency index", `${r.neer.toFixed(1)}`) +
         tipRow("Month", monthName(r.month)),
     })),
     {
@@ -264,7 +264,7 @@
         tip: `<b>${r.name}</b>` +
           tipRow(`Yield, ${unit}`, `${signed(c.dYield)} pts`) +
           tipRow(`Debt/GDP, ${unit}`, `${signed(c.dDebt, 1)} pts`) +
-          tipRow(`Currency, ${unit}`, `${signed(c.dFx, 1)}%`) +
+          tipRow(r.euro ? `Euro, ${unit}` : `Currency, ${unit}`, `${signed(c.dFx, 1)}%`) +
           tipRow("Group", groupName(r.group)),
       })),
       {

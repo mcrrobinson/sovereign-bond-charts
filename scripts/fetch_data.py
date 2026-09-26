@@ -83,15 +83,22 @@ def fetch_yields():
     return out
 
 
+# Countries that use the euro. BIS also publishes a per-country index for each of them,
+# but it weights the euro by that country's own trade partners (Greece's basket leans on
+# Turkey, Germany's on other euro members), so the same currency would show different
+# strengths. Every euro member uses the euro-area index (XM) instead.
+EURO = {"DEU", "FRA", "ITA", "ESP", "PRT", "GRC", "BEL", "AUT", "NLD", "IRL"}
+
+
 def fetch_neer():
-    iso2_to_3 = {c[1]: c[0] for c in COUNTRIES}
-    keys = "+".join(iso2_to_3)
+    area = {c[0]: ("XM" if c[0] in EURO else c[1]) for c in COUNTRIES}
+    keys = "+".join(sorted(set(area.values())))
     url = f"https://stats.bis.org/api/v1/data/WS_EER/M.N.B.{keys}?startPeriod={START}&format=csv"
-    out = {}
+    by_area = {}
     for row in csv.DictReader(io.StringIO(get(url))):
-        if row["OBS_VALUE"] and row["REF_AREA"] in iso2_to_3:
-            out.setdefault(iso2_to_3[row["REF_AREA"]], {})[row["TIME_PERIOD"]] = round(float(row["OBS_VALUE"]), 2)
-    return out
+        if row["OBS_VALUE"]:
+            by_area.setdefault(row["REF_AREA"], {})[row["TIME_PERIOD"]] = round(float(row["OBS_VALUE"]), 2)
+    return {iso3: by_area[a] for iso3, a in area.items() if a in by_area}
 
 
 def fetch_debt():
@@ -116,10 +123,10 @@ def main():
         "updated": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d"),
         "sources": {
             "yield": "OECD Main Economic Indicators, long-term interest rates (10-year government bonds), monthly average",
-            "neer": "BIS nominal effective exchange rate, broad basket of 64 economies, 2020 = 100",
+            "neer": "BIS nominal effective exchange rate, broad basket of 64 economies, 2020 = 100; euro members share the euro-area index",
             "debt": "IMF World Economic Outlook, general government gross debt, % of GDP",
         },
-        "countries": [{"iso3": a, "iso2": b, "name": n, "group": g} for a, b, n, g in COUNTRIES],
+        "countries": [{"iso3": a, "iso2": b, "name": n, "group": g, "euro": a in EURO} for a, b, n, g in COUNTRIES],
         "series": {
             c[0]: {"yield": yields[c[0]], "neer": neer[c[0]], "debt": debt[c[0]]} for c in COUNTRIES
         },

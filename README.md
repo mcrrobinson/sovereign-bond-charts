@@ -21,7 +21,7 @@ All three sources are free public APIs with no key.
 | Currency strength | [BIS](https://data.bis.org/topics/EER) nominal effective exchange rate, broad basket of 64 economies (`WS_EER`, `M.N.B`), 2020 = 100 | Monthly |
 | Government debt, % of GDP | [IMF](https://www.imf.org/external/datamapper/GGXWDG_NGDP@WEO) World Economic Outlook, general government gross debt (`GGXWDG_NGDP`) | Annual |
 
-**Currency strength** is the BIS nominal effective exchange rate: a currency's value against a trade-weighted basket of its trading partners' currencies. It is a better measure than a rate against the US dollar alone because it reflects the currency's value against all the others it trades with.
+**Currency strength** is the BIS nominal effective exchange rate: a currency's value against a trade-weighted basket of its trading partners' currencies. It is a better measure than a rate against the US dollar alone because it reflects the currency's value against all the others it trades with. The ten euro members all use the euro-area index. BIS also publishes a separate index per euro country, but each one weights the euro by that country's own trade partners, so the same currency would appear to move by different amounts (for example Greece +2.0% a year vs Italy +1.1% over 2021–2026).
 
 **Rates of change** are annualised so the three periods use the same units: yields and debt are percentage points per year, and currency is compound % per year. Yields and currency compare the latest month with the same month 1, 5 or 10 years earlier. Debt compares the latest IMF year with the year 1, 5 or 10 years before.
 
