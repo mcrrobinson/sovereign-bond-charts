@@ -6,7 +6,7 @@ Two interactive bubble charts comparing 27 countries' government bond yields, de
 
 ![Preview of both charts](docs/preview.png)
 
-1. **Where countries stand**: debt-to-GDP (x) against 10-year bond yield (y, log scale). Bubble size is currency strength.
+1. **Where countries stand**: debt-to-GDP (x) against 10-year bond yield (y, log scale). Bubble size is how far the currency has moved since 2020: solid means stronger, a ring means weaker.
 2. **Rate of change**: the average yearly change in debt-to-GDP (x) and 10-year yield (y) over 1, 5 or 10 years (use the buttons to switch). Bubble size is how fast the currency moved: solid means it strengthened, a ring means it weakened.
 
 Blue bubbles are advanced economies and orange bubbles are emerging markets. Hover over or tab to a bubble for exact figures; the full data is in the table at the bottom of the page.

@@ -188,31 +188,37 @@
 
   // ---------- chart 1: levels ----------
 
-  const R1 = 24; // radius at an index of 140
-  const rNeer = (v) => Math.sqrt(v / 140) * R1;
+  // Size by the move since 2020 rather than the index itself: indices cluster around 100,
+  // so area proportional to the index makes every bubble look the same.
+  const R1 = 28; // radius at the largest move
+  const vs2020 = (v) => v - 100;
+  const maxMove = d3.max(rows, (r) => Math.abs(vs2020(r.neer))) || 1;
+  const rNeer = (v) => Math.max(3, Math.sqrt(Math.abs(vs2020(v)) / maxMove) * R1);
+  const pct = (v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)}%`;
   const months = [...new Set(rows.map((r) => r.month))].sort();
   document.getElementById("levels-sub").textContent =
     `10-year yield: ${monthName(months.at(-1))} average` +
     (months.length > 1 ? ` (${rows.filter((r) => r.month !== months.at(-1)).map((r) => `${r.iso2} ${monthName(r.month)}`).join(", ")})` : "") +
     ` · Debt: ${rows[0].debtYear} · Currency: same month as yield`;
   sizeKey(document.getElementById("levels-key"), [
-    { r: rNeer(70), label: "70" }, { r: rNeer(100), label: "100 = 2020 level" }, { r: rNeer(130), label: "130" },
+    { r: rNeer(110), label: "10%" }, { r: rNeer(130), label: "30% vs 2020" },
+    { r: 7, label: "Solid: stronger than 2020" }, { r: 7, label: "Ring: weaker than 2020", hollow: true },
   ]);
 
   const levels = bubbleChart(document.getElementById("levels"), {
-    aria: "Bubble chart of government debt to GDP against 10-year bond yield, sized by currency strength",
+    aria: "Bubble chart of government debt to GDP against 10-year bond yield, sized by currency change since 2020",
     xTitle: "Government debt, % of GDP →",
     yTitle: "10-year bond yield (log scale) →",
   });
   const maxDebt = d3.max(rows, (r) => r.debt);
   levels.update(
     rows.map((r) => ({
-      ...r, x: r.debt, y: r.yield, r: rNeer(r.neer), hollow: false,
-      aria: `${r.name}: debt ${r.debt.toFixed(0)}% of GDP, yield ${r.yield.toFixed(2)}%, currency index ${r.neer.toFixed(1)}`,
+      ...r, x: r.debt, y: r.yield, r: rNeer(r.neer), hollow: r.neer < 100,
+      aria: `${r.name}: debt ${r.debt.toFixed(0)}% of GDP, yield ${r.yield.toFixed(2)}%, currency ${pct(vs2020(r.neer))} vs 2020`,
       tip: `<b>${r.name}</b>` +
         tipRow("10-year yield", `${r.yield.toFixed(2)}%`) +
         tipRow(`Debt / GDP (${r.debtYear})`, `${r.debt.toFixed(1)}%`) +
-        tipRow(r.euro ? "Currency index (euro)" : "Currency index", `${r.neer.toFixed(1)}`) +
+        tipRow(r.euro ? "Euro vs 2020" : "Currency vs 2020", pct(vs2020(r.neer))) +
         tipRow("Month", monthName(r.month)),
     })),
     {
