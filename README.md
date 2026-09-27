@@ -7,7 +7,7 @@ Two interactive bubble charts comparing 27 countries' government bond yields, de
 ![Preview of both charts](docs/preview.png)
 
 1. **Where countries stand**: debt-to-GDP (x) against 10-year bond yield (y, log scale). Bubble size is how far the currency has moved since 2020: solid means stronger, a ring means weaker.
-2. **Rate of change**: the average yearly change in debt-to-GDP (x) and 10-year yield (y) over 1, 5 or 10 years (use the buttons to switch). Bubble size is how fast the currency moved: solid means it strengthened, a ring means it weakened.
+2. **Change year by year**: each year's change in debt-to-GDP (x) and 10-year yield (y), from 2000 to the current year. Press play to animate through the years or drag the slider; `?year=2011` opens a given year. Bubble size is how far the currency moved that year: solid means it strengthened, a ring means it weakened.
 
 Blue bubbles are advanced economies and orange bubbles are emerging markets. Hover over or tab to a bubble for exact figures; the full data is in the table at the bottom of the page.
 
@@ -23,7 +23,7 @@ All three sources are free public APIs with no key.
 
 **Currency strength** is the BIS nominal effective exchange rate: a currency's value against a trade-weighted basket of its trading partners' currencies. It is a better measure than a rate against the US dollar alone because it reflects the currency's value against all the others it trades with. The ten euro members all use the euro-area index. BIS also publishes a separate index per euro country, but each one weights the euro by that country's own trade partners, so the same currency would appear to move by different amounts (for example Greece +2.0% a year vs Italy +1.1% over 2021–2026).
 
-**Rates of change** are annualised so the three periods use the same units: yields and debt are percentage points per year, and currency is compound % per year. Yields and currency compare the latest month with the same month 1, 5 or 10 years earlier. Debt compares the latest IMF year with the year 1, 5 or 10 years before.
+**Yearly changes** are in percentage points for yields and debt, and % for currency. Yields and currency compare each December with the previous December; debt compares each IMF year with the one before. The current year runs from December to the latest month, and its debt figure is the IMF forecast. The axes are fixed across years so bubbles can be followed; the few country-years beyond them (Greece and Portugal in 2010–13, Ireland's 2015 GDP revision, Colombia in 2005 and 2022) are pinned to the edge with an arrow. Countries appear once their yield series starts: India in 2012, China in 2015.
 
 ### Limitations
 

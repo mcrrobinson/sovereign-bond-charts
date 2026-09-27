@@ -21,10 +21,14 @@
   const latestKey = (series) => Object.keys(series).sort().at(-1);
   const monthName = (ym) => d3.timeFormat("%b %Y")(d3.timeParse("%Y-%m")(ym));
 
+  // The debt series runs into this year's IMF forecast; "where countries stand" uses the latest estimate.
+  const lastDebtYear = data.debtForecastFrom - 1;
+  const lastMonth = d3.max(data.countries, (c) => latestKey(data.series[c.iso3].yield));
+
   const rows = data.countries.map((c) => {
     const s = data.series[c.iso3];
     const month = latestKey(s.yield);
-    const debtYear = +latestKey(s.debt);
+    const debtYear = lastDebtYear;
     return {
       ...c,
       month,
@@ -32,18 +36,16 @@
       yield: s.yield[month],
       neer: valueAt(s.neer, month),
       debt: s.debt[debtYear],
-      change(years) {
-        const then = monthShift(month, -12 * years);
-        const y0 = valueAt(s.yield, then);
-        const n0 = valueAt(s.neer, then);
-        const d0 = s.debt[debtYear - years];
-        if (y0 == null || n0 == null || d0 == null || this.neer == null) return null;
-        return {
-          from: then,
-          dYield: (this.yield - y0) / years,
-          dDebt: (this.debt - d0) / years,
-          dFx: (Math.pow(this.neer / n0, 1 / years) - 1) * 100,
-        };
+      // Change over one calendar year: December to December for yield and currency, and the
+      // year-on-year change in debt. The current year runs from December to the latest month.
+      change(year) {
+        const from = `${year - 1}-12`;
+        const to = year === data.debtForecastFrom ? lastMonth : `${year}-12`;
+        const y0 = valueAt(s.yield, from), y1 = valueAt(s.yield, to);
+        const n0 = valueAt(s.neer, from), n1 = valueAt(s.neer, to);
+        const d0 = s.debt[year - 1], d1 = s.debt[year];
+        if ([y0, y1, n0, n1, d0, d1].some((v) => v == null)) return null;
+        return { dYield: y1 - y0, dDebt: d1 - d0, dFx: (n1 / n0 - 1) * 100 };
       },
     };
   });
@@ -114,14 +116,16 @@
     const axY = svg.append("g").attr("transform", `translate(${m.l},0)`);
     svg.append("text").attr("class", "axis-title").attr("x", (W + m.l - m.r) / 2).attr("y", H - 12).attr("text-anchor", "middle").text(opts.xTitle);
     svg.append("text").attr("class", "axis-title").attr("transform", `translate(16 ${(H - m.b + m.t) / 2}) rotate(-90)`).attr("text-anchor", "middle").text(opts.yTitle);
+    const mark = svg.append("text").attr("class", "watermark").attr("x", W - m.r - 12).attr("y", H - m.b - 14).attr("text-anchor", "end");
     const bubbles = svg.append("g");
     const labels = svg.append("g");
     let first = true; // draw the first frame complete, animate only later updates
 
-    function update(items, { x, y, xTicks, yTicks, xFmt, yFmt }) {
+    function update(items, { x, y, xTicks, yTicks, xFmt, yFmt, watermark = "", duration = DURATION }) {
       x.range([m.l, W - m.r]);
       y.range([H - m.b, m.t]);
-      const t = svg.transition().duration(first ? 0 : DURATION).ease(d3.easeCubicInOut);
+      mark.text(watermark);
+      const t = svg.transition().duration(first || reduceMotion ? 0 : duration).ease(d3.easeCubicInOut);
       first = false;
 
       const styleAxis = (g) => g.call((s) => s.select(".domain").remove()).call((s) => s.selectAll(".tick line").remove());
@@ -143,7 +147,7 @@
       zeros.selectAll("line").data(zeroLines, (d) => d.k).join("line").attr("class", "zero")
         .transition(t).attr("x1", (d) => d.x1).attr("x2", (d) => d.x2).attr("y1", (d) => d.y1).attr("y2", (d) => d.y2);
 
-      const nodes = items.map((d) => ({ d, x: x(d.x), y: y(d.y), r: d.r, label: d.iso2 }));
+      const nodes = items.map((d) => ({ d, x: x(d.x), y: y(d.y), r: d.r, label: d.label || d.iso2 }));
       placeLabels(nodes, W, H - m.b);
       nodes.sort((a, b) => b.r - a.r); // big ones underneath
 
@@ -231,66 +235,75 @@
     },
   );
 
-  // ---------- chart 2: rate of change ----------
+  // ---------- chart 2: change year by year ----------
 
   const change = bubbleChart(document.getElementById("change"), {
-    aria: "Bubble chart of the yearly change in debt to GDP against the yearly change in bond yield, sized by currency change",
-    xTitle: "Change in debt, percentage points of GDP per year →",
-    yTitle: "Change in 10-year yield, points per year →",
+    aria: "Animated bubble chart of each year's change in debt to GDP against the change in bond yield, sized by currency change",
+    xTitle: "Change in debt over the year, percentage points of GDP →",
+    yTitle: "Change in 10-year yield over the year, points →",
     zeroLines: true,
   });
-  const R2 = 26; // radius at the period's largest currency move
 
-  function drawChange(years) {
-    const items = rows.map((r) => ({ r, c: r.change(years) })).filter((o) => o.c);
-    const maxFx = d3.max(items, (o) => Math.abs(o.c.dFx)) || 1;
-    const rFx = (v) => Math.max(3, Math.sqrt(Math.abs(v) / maxFx) * R2);
-    const sym = (vals, step) => {
-      const lo = d3.min(vals), hi = d3.max(vals), pad = (hi - lo) * 0.08 || 1;
-      return [Math.min(0, lo - pad), Math.max(0, hi + pad)];
-    };
-    const xDom = sym(items.map((o) => o.c.dDebt));
-    const yDom = sym(items.map((o) => o.c.dYield));
-    const x = d3.scaleLinear().domain(xDom).nice(8);
-    const y = d3.scaleLinear().domain(yDom).nice(7);
-    const unit = years === 1 ? "over the year" : "per year";
+  // Axes stay fixed across years so movement between frames means something. They cover
+  // about 98% of country-years; the rest (the euro crisis, Ireland's 2015 GDP revision)
+  // are pinned to the edge with an arrow, and the tooltip gives the real figure.
+  const X2 = [-20, 30], Y2 = [-4, 4];
+  const x2 = d3.scaleLinear().domain(X2), y2 = d3.scaleLinear().domain(Y2);
+  const R2 = 26, FX_MAX = 20; // radius at a 20% currency move; bigger moves are capped
+  const rFx = (v) => Math.max(3, Math.sqrt(Math.min(Math.abs(v), FX_MAX) / FX_MAX) * R2);
+  sizeKey(document.getElementById("change-key"), [
+    { r: rFx(5), label: "5%" }, { r: rFx(FX_MAX), label: `${FX_MAX}%+ currency move` },
+    { r: 7, label: "Solid: currency strengthened" }, { r: 7, label: "Ring: currency weakened", hollow: true },
+  ]);
 
-    document.getElementById("change-sub").textContent =
-      `${years === 1 ? "Change over 1 year" : `Average change per year over ${years} years`}: yields and currency ${monthName(items[0].c.from)} → ${monthName(months.at(-1))}, debt ${rows[0].debtYear - years} → ${rows[0].debtYear}`;
-    const niceFx = [maxFx / 4, maxFx].map((v) => (v >= 2 ? Math.round(v) : Math.round(v * 10) / 10));
-    sizeKey(document.getElementById("change-key"), [
-      { r: rFx(niceFx[0]), label: `${niceFx[0]}%` }, { r: rFx(niceFx[1]), label: `${niceFx[1]}% a year` },
-      { r: 7, label: "Solid: currency strengthened" }, { r: 7, label: "Ring: currency weakened", hollow: true },
-    ]);
+  const firstYear = +d3.min(data.countries, (c) => Object.keys(data.series[c.iso3].yield).sort()[0]).slice(0, 4) + 1;
+  const lastYear = data.debtForecastFrom;
+  const isPartial = (year) => year === lastYear;
+  const yearName = (year) => (isPartial(year) ? `${year} to ${d3.timeFormat("%b")(d3.timeParse("%Y-%m")(lastMonth))}` : `${year}`);
+  const pin = (v, [lo, hi]) => Math.max(lo, Math.min(hi, v));
+
+  function drawChange(year, duration) {
+    const items = rows.map((r) => ({ r, c: r.change(year) })).filter((o) => o.c);
+    document.getElementById("change-sub").textContent = isPartial(year)
+      ? `${year} so far: yields and currency Dec ${year - 1} → ${monthName(lastMonth)}, debt is the IMF forecast for ${year}`
+      : `${year}: yields and currency Dec ${year - 1} → Dec ${year}, debt ${year - 1} → ${year}` +
+        (year === lastDebtYear ? " (IMF estimate)" : "");
 
     change.update(
-      items.map(({ r, c }) => ({
-        ...r, x: c.dDebt, y: c.dYield, r: rFx(c.dFx), hollow: c.dFx < 0,
-        aria: `${r.name}: debt ${signed(c.dDebt, 1)} points ${unit}, yield ${signed(c.dYield)} points ${unit}, currency ${signed(c.dFx, 1)}% ${unit}`,
-        tip: `<b>${r.name}</b>` +
-          tipRow(`Yield, ${unit}`, `${signed(c.dYield)} pts`) +
-          tipRow(`Debt/GDP, ${unit}`, `${signed(c.dDebt, 1)} pts`) +
-          tipRow(r.euro ? `Euro, ${unit}` : `Currency, ${unit}`, `${signed(c.dFx, 1)}%`) +
-          tipRow("Group", groupName(r.group)),
-      })),
+      items.map(({ r, c }) => {
+        const arrow = (c.dDebt > X2[1] ? "→" : c.dDebt < X2[0] ? "←" : "") + (c.dYield > Y2[1] ? "↑" : c.dYield < Y2[0] ? "↓" : "");
+        return {
+          ...r, x: pin(c.dDebt, X2), y: pin(c.dYield, Y2), r: rFx(c.dFx), hollow: c.dFx < 0,
+          label: r.iso2 + (arrow ? ` ${arrow}` : ""),
+          aria: `${r.name}, ${yearName(year)}: debt ${signed(c.dDebt, 1)} points, yield ${signed(c.dYield)} points, currency ${signed(c.dFx, 1)}%` +
+            (arrow ? " (off the chart; pinned to the edge)" : ""),
+          tip: `<b>${r.name}, ${yearName(year)}</b>` +
+            tipRow("Yield change", `${signed(c.dYield)} pts`) +
+            tipRow(isPartial(year) ? "Debt/GDP (forecast)" : "Debt/GDP change", `${signed(c.dDebt, 1)} pts`) +
+            tipRow(r.euro ? "Euro" : "Currency", `${signed(c.dFx, 1)}%`) +
+            (arrow ? tipRow("Off the chart", arrow) : ""),
+        };
+      }),
       {
-        x, y,
-        xTicks: x.ticks(8), yTicks: y.ticks(7),
-        xFmt: (v) => (v === 0 ? "0" : signed(v, Math.abs(x.ticks(8)[1] - x.ticks(8)[0]) < 1 ? 1 : 0)),
-        yFmt: (v) => (v === 0 ? "0" : signed(v, Math.abs(y.ticks(7)[1] - y.ticks(7)[0]) < 0.1 ? 2 : 1)),
+        x: x2, y: y2,
+        xTicks: d3.range(X2[0], X2[1] + 1, 5), yTicks: d3.range(Y2[0], Y2[1] + 1, 1),
+        xFmt: (v) => (v === 0 ? "0" : signed(v, 0)),
+        yFmt: (v) => (v === 0 ? "0" : signed(v, 0)),
+        watermark: yearName(year),
+        duration,
       },
     );
-    renderTable(years);
+    renderTable(year);
   }
 
   // ---------- table ----------
 
-  function renderTable(years) {
-    const unit = years === 1 ? "1Y" : `${years}Y /yr`;
+  function renderTable(year) {
+    const unit = yearName(year);
     const head = `<thead><tr><th>Country</th><th>Group</th><th class="n">Yield</th><th class="n">Debt/GDP</th><th class="n">Currency</th>` +
       `<th class="n">Δ yield (${unit})</th><th class="n">Δ debt (${unit})</th><th class="n">Δ currency (${unit})</th></tr></thead>`;
     const body = [...rows].sort((a, b) => b.debt - a.debt).map((r) => {
-      const c = r.change(years);
+      const c = r.change(year);
       const cell = (v, d, suffix = "") => `<td class="n">${c ? signed(v, d) + suffix : "–"}</td>`;
       return `<tr><td>${r.name}</td><td>${r.group === "em" ? "Emerging" : "Advanced"}</td>` +
         `<td class="n">${r.yield.toFixed(2)}%</td><td class="n">${r.debt.toFixed(1)}%</td><td class="n">${r.neer.toFixed(1)}</td>` +
@@ -299,15 +312,49 @@
     document.getElementById("tbl").innerHTML = head + "<tbody>" + body + "</tbody>";
   }
 
-  // ---------- period buttons ----------
+  // ---------- year slider and play button ----------
 
-  const buttons = [...document.querySelectorAll(".seg button")];
-  const choose = (years) => {
-    buttons.forEach((b) => b.setAttribute("aria-pressed", String(+b.dataset.years === years)));
-    drawChange(years);
+  const FRAME_MS = 1100;
+  const slider = document.getElementById("year");
+  const out = document.getElementById("year-out");
+  const play = document.getElementById("play");
+  slider.min = firstYear;
+  slider.max = lastYear;
+  document.getElementById("year-min").textContent = firstYear;
+  document.getElementById("year-max").textContent = lastYear;
+  let timer = null;
+
+  const show = (year, duration) => {
+    slider.value = year;
+    out.textContent = yearName(year);
+    slider.setAttribute("aria-valuetext", yearName(year));
+    drawChange(year, duration);
   };
-  buttons.forEach((b) => b.addEventListener("click", () => choose(+b.dataset.years)));
-  choose(5);
+  const stop = () => {
+    clearInterval(timer);
+    timer = null;
+    play.setAttribute("aria-pressed", "false");
+    play.setAttribute("aria-label", "Play");
+  };
+  play.addEventListener("click", () => {
+    if (timer) return stop();
+    if (+slider.value >= lastYear) show(firstYear);
+    play.setAttribute("aria-pressed", "true");
+    play.setAttribute("aria-label", "Pause");
+    timer = setInterval(() => {
+      const next = +slider.value + 1;
+      if (next > lastYear) return stop();
+      show(next, FRAME_MS * 0.85);
+      if (next === lastYear) stop();
+    }, FRAME_MS);
+  });
+  slider.addEventListener("input", () => {
+    stop();
+    show(+slider.value, 350);
+  });
+  // Open on ?year=YYYY if given, otherwise the latest full year.
+  const asked = +new URLSearchParams(location.search).get("year");
+  show(asked >= firstYear && asked <= lastYear ? asked : lastDebtYear);
 
   // ---------- sources ----------
 

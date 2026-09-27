@@ -16,7 +16,8 @@ import pathlib
 import time
 import urllib.request
 
-START = "2014-01"
+# The rate-of-change chart steps through years from 2000, which needs December 1999 as a base.
+START = "1999-01"
 
 # iso3, iso2, name, group ("adv" = advanced economy, "em" = emerging market; IMF WEO grouping)
 COUNTRIES = [
@@ -104,12 +105,13 @@ def fetch_neer():
 def fetch_debt():
     data = json.loads(get("https://www.imf.org/external/datamapper/api/v1/GGXWDG_NGDP", ua=None))
     series = data["values"]["GGXWDG_NGDP"]
-    # WEO includes projections; keep only years up to last year (latest estimate, not a forecast).
-    last_year = dt.date.today().year - 1
+    # WEO includes projections. Keep up to this year: last year is the latest estimate, and
+    # this year's forecast is only used for the part-year frame of the rate-of-change chart.
+    first, this_year = int(START[:4]), dt.date.today().year
     out = {}
     for iso3, *_ in COUNTRIES:
         years = series.get(iso3, {})
-        out[iso3] = {y: round(v, 1) for y, v in years.items() if v is not None and 2010 <= int(y) <= last_year}
+        out[iso3] = {y: round(v, 1) for y, v in years.items() if v is not None and first <= int(y) <= this_year}
     return out
 
 
@@ -126,6 +128,7 @@ def main():
             "neer": "BIS nominal effective exchange rate, broad basket of 64 economies, 2020 = 100; euro members share the euro-area index",
             "debt": "IMF World Economic Outlook, general government gross debt, % of GDP",
         },
+        "debtForecastFrom": dt.date.today().year,
         "countries": [{"iso3": a, "iso2": b, "name": n, "group": g, "euro": a in EURO} for a, b, n, g in COUNTRIES],
         "series": {
             c[0]: {"yield": yields[c[0]], "neer": neer[c[0]], "debt": debt[c[0]]} for c in COUNTRIES

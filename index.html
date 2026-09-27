@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sovereign Bond Charts</title>
-<meta name="description" content="Government bond yields, debt-to-GDP and currency strength for 27 countries, with their rates of change over 1, 5 and 10 years.">
+<meta name="description" content="Government bond yields, debt-to-GDP and currency strength for 27 countries, with how they changed year by year since 2000.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Fraunces:opsz,wght@9..144,600&display=swap">
@@ -36,18 +36,23 @@
   <section class="card" aria-labelledby="change-title">
     <div class="card-head">
       <div>
-        <h2 id="change-title">Rate of change</h2>
-        <p class="sub" id="change-sub">Average change per year</p>
+        <h2 id="change-title">Change year by year</h2>
+        <p class="sub" id="change-sub">Change over each year</p>
       </div>
-      <div class="seg" role="group" aria-label="Period">
-        <button type="button" id="p1" data-years="1">1 year</button>
-        <button type="button" id="p5" data-years="5" aria-pressed="true">5 years</button>
-        <button type="button" id="p10" data-years="10">10 years</button>
+      <div class="player">
+        <button type="button" id="play" aria-pressed="false" aria-label="Play">
+          <svg class="i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11l9-5.5z"/></svg>
+          <svg class="i-pause" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/></svg>
+        </button>
+        <span class="end" id="year-min"></span>
+        <input type="range" id="year" step="1" aria-label="Year">
+        <span class="end" id="year-max"></span>
+        <output id="year-out" for="year"></output>
       </div>
     </div>
     <div class="size-key" id="change-key" aria-hidden="true"></div>
     <div class="chart" id="change"></div>
-    <p class="how">Each axis is the average change per year over the chosen period, so the three periods share units. Bubble size is how fast the currency moved against its trade-weighted basket (compound % per year). A solid bubble means it strengthened; a hollow ring means it weakened.</p>
+    <p class="how">Each frame is one calendar year: yields and currency compare December with the previous December, and debt compares the year with the one before. Press play to step through from 2000, or drag the slider. Bubble size is how far the currency moved against its trade-weighted basket that year; a solid bubble means it strengthened and a hollow ring means it weakened. The axes stay fixed so you can follow each country; a few crisis years fall off the scale and are pinned to the edge with an arrow.</p>
   </section>
 
   <details class="card table-card">
